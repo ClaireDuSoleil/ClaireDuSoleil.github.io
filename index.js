@@ -6,12 +6,19 @@ let origTranArray = new Array();
 let bankArray = new Array();
 let proceedsArray = new Array();
 
-function displayConversionResults(contents) {
-  var element = document.getElementById("file-content");
+function displaySomething(contents, elementName) {
+  var element = document.getElementById(elementName);
   element.textContent = contents;
 }
 // Button callback
 async function onButtonClicked() {
+  if (
+    !document.getElementById("Option1").checked &&
+    !document.getElementById("Option2").checked
+  ) {
+    alert("please select output type as csv or txf");
+    return;
+  }
   let files = await selectFile(".csv");
   var file = files[0];
   inputFileName = file.name.substring(0, file.name.length - 4);
@@ -21,35 +28,94 @@ async function onButtonClicked() {
   }
   var reader = new FileReader();
   reader.onload = function (e) {
+    document.getElementById("button1").style.visibility = "hidden";
+    document.getElementById("Option1").style.visibility = "hidden";
+    document.getElementById("Option2").style.visibility = "hidden";
+    document.getElementById("label1").style.visibility = "hidden";
+    document.getElementById("label2").style.visibility = "hidden";
     var contents = e.target.result;
     processData(contents);
     tranArray.forEach(analyzeTx);
     console.log(tranArray);
     console.log(proceedsArray);
     console.log(bankArray);
-    displayConversionResults("All Finished");
-    createSaveButton();
+    if (document.getElementById("Option1").checked) {
+      createSaveCSVButton();
+    } else if (document.getElementById("Option2").checked) {
+      createSaveTXFButton();
+    }
   };
   reader.readAsText(file);
 }
 
-function createSaveButton() {
-  var save_button = document.createElement("button");
-  save_button.innerHTML = "Save New CSV to Download Folder";
+function createSaveCSVButton() {
+  var save_csv_button = document.createElement("button");
+  save_csv_button.innerHTML = "Save Proceeds CSV to Download Folder";
   var body = document.getElementsByTagName("body")[0];
-  body.appendChild(save_button);
-  save_button.addEventListener("click", function () {
-    saveTextAsFile();
+  body.appendChild(save_csv_button);
+  save_csv_button.addEventListener("click", function () {
+    saveTextAsFile(createOutputCSV(), inputFileName + "-Proceeds.csv");
     alert("File saved to Download Folder");
     window.location.reload();
   });
 }
 
-function saveTextAsFile() {
-  var textToWrite = "something";
-  var textFileAsBlob = new Blob([textToWrite], { type: "text/plain" });
-  var fileNameToSaveAs = inputFileName + "-gain-loss.csv";
+function createOutputCSV() {
+  var output =
+    "Date Acquired, Date Disposed, Asset, Quantity, Basis, Proceeds, Gain/Loss\r\n";
+  for (var i = 0; i < proceedsArray.length; i++) {
+    output += proceedsArray[i].dateAcquired + ",";
+    output += proceedsArray[i].dateDisposed + ",";
+    output += proceedsArray[i].assetName + ",";
+    output += proceedsArray[i].quantity + ",";
+    output += proceedsArray[i].basis + ",";
+    output += proceedsArray[i].proceeds + ",";
+    output += proceedsArray[i].gainLoss + "\r\n";
+  }
+  return output;
+}
 
+function createSaveTXFButton() {
+  var save_txf_button = document.createElement("button");
+  save_txf_button.innerHTML = "Save TurboTax TXF to Download Folder";
+  var body = document.getElementsByTagName("body")[0];
+  body.appendChild(save_txf_button);
+  save_txf_button.addEventListener("click", function () {
+    saveTextAsFile(createOutputTXF(), inputFileName + "-TurboTax.txf");
+    alert("File saved to Download Folder");
+    window.location.reload();
+  });
+}
+
+function createOutputTXF() {
+  var output = "V041\r\n";
+  output += "Aclaire\r\n";
+  var date = new Date();
+
+  output +=
+    "D " +
+    ("0" + (date.getMonth() + 1)).slice(-2) +
+    "/" +
+    ("0" + date.getUTCDate()).slice(-2) +
+    "/" +
+    date.getFullYear() +
+    "\r\n";
+  // N321 is supposed to mean short-term sale but TT is ignoring it
+  for (var i = 0; i < proceedsArray.length; i++) {
+    output += "^\r\nTD\r\nN321\r\nC1\r\nL1\r\n";
+    output += "P" + proceedsArray[i].quantity;
+    output += " " + proceedsArray[i].assetName + "\r\n";
+    output += "D" + proceedsArray[i].txfDateAcq + "\r\n";
+    output += "D" + proceedsArray[i].txfDateDis + "\r\n";
+    output += "$" + proceedsArray[i].basis + "\r\n";
+    output += "$" + proceedsArray[i].proceeds + "\r\n";
+  }
+  output += "^\r\n";
+  return output;
+}
+
+function saveTextAsFile(textToWrite, fileNameToSaveAs) {
+  var textFileAsBlob = new Blob([textToWrite], { type: "text/plain" });
   var downloadLink = document.createElement("a");
   downloadLink.download = fileNameToSaveAs;
   downloadLink.innerHTML = "Download File";
@@ -118,6 +184,7 @@ function processData(allText) {
       //For debugging purposes, I create two copies of the transaction array since
       //one will get modified as I subtract sales events
       let myTrans = new Transaction(
+        myobj.Timestamp,
         unixTimeZero,
         myobj["Transaction Type"],
         myobj.Asset,
@@ -131,6 +198,7 @@ function processData(allText) {
       tranArray.push(myTrans);
 
       let myOrigTrans = new Transaction(
+        myobj.Timestamp,
         unixTimeZero,
         myobj["Transaction Type"],
         myobj.Asset,
@@ -147,7 +215,9 @@ function processData(allText) {
       if (data.length > 1) console.log("there is a bad line in here");
     }
   }
-  tranArray.sort((a, b) => (a.date > b.date ? 1 : b.date > a.date ? -1 : 0));
+  tranArray.sort((a, b) =>
+    a.unixDate > b.unixDate ? 1 : b.unixDate > a.unixDate ? -1 : 0
+  );
 }
 
 function analyzeTx(item, index, arr) {
@@ -183,6 +253,7 @@ function processConversion(item) {
   //first create sale event
   let sellTrans = new Transaction(
     item.date,
+    item.unixDate,
     "Sell",
     item.asset,
     item.quantity,
@@ -203,6 +274,7 @@ function processConversion(item) {
   var subTotal = item.usdSubtotal;
   let addTrans = new Transaction(
     item.date,
+    item.unixDate,
     "Buy",
     elements[5],
     parseFloat(elements[4]),
@@ -219,6 +291,7 @@ function processConversion(item) {
 class Transaction {
   constructor(
     _date,
+    _unixDate,
     _action,
     _asset,
     _quantity,
@@ -229,6 +302,7 @@ class Transaction {
     _note
   ) {
     this.date = _date;
+    this.unixDate = _unixDate;
     this.action = _action;
     this.asset = _asset;
     this.quantity = parseFloat(_quantity);
@@ -246,13 +320,32 @@ class Transaction {
 }
 
 class Proceeds {
-  constructor(dateAquired, dateDisposed, assetName, quantity, basis, proceeds) {
-    this.dateAquired = dateAquired;
+  constructor(
+    dateAcquired,
+    dateDisposed,
+    assetName,
+    quantity,
+    basis,
+    proceeds
+  ) {
+    this.dateAcquired = dateAcquired;
     this.dateDisposed = dateDisposed;
     this.assetName = assetName;
     this.quantity = quantity;
     this.basis = basis;
     this.proceeds = proceeds;
+    this.gainLoss = proceeds - basis;
+    var d1 = Date.parse(dateAcquired);
+    var d2 = Date.parse(dateDisposed);
+    const date1 = new Date(d1);
+    const date2 = new Date(d2);
+    this.txfDateAcq = ("0" + (date1.getMonth() + 1)).slice(-2);
+    this.txfDateAcq += "/" + ("0" + date1.getUTCDate()).slice(-2);
+    this.txfDateAcq += "/" + date1.getFullYear();
+
+    this.txfDateDis = ("0" + (date2.getMonth() + 1)).slice(-2);
+    this.txfDateDis += "/" + ("0" + date2.getUTCDate()).slice(-2);
+    this.txfDateDis += "/" + date2.getFullYear();
   }
 }
 
