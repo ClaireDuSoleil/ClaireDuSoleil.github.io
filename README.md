@@ -1,5 +1,5 @@
 # ClaireDuSoleil.github.io
 
-Convert Coinbase CSV to TurboTax Format
+Convert Coinbase CSV to TurboTax Format (.txf)
 
-This is under construction.
+I'm working on this...
