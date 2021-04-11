@@ -6,8 +6,8 @@ let origTranArray = new Array();
 let bankArray = new Array();
 let proceedsArray = new Array();
 
-function displaySomething(contents, elementName) {
-  var element = document.getElementById(elementName);
+function displaySomething(contents) {
+  var element = document.getElementById("file-content");
   element.textContent = contents;
 }
 // Button callback
@@ -29,10 +29,7 @@ async function onButtonClicked() {
   var reader = new FileReader();
   reader.onload = function (e) {
     document.getElementById("button1").style.visibility = "hidden";
-    document.getElementById("Option1").style.visibility = "hidden";
-    document.getElementById("Option2").style.visibility = "hidden";
-    document.getElementById("label1").style.visibility = "hidden";
-    document.getElementById("label2").style.visibility = "hidden";
+    document.getElementById("content").style.visibility = "hidden";
     var contents = e.target.result;
     processData(contents);
     tranArray.forEach(analyzeTx);
@@ -40,8 +37,10 @@ async function onButtonClicked() {
     console.log(proceedsArray);
     console.log(bankArray);
     if (document.getElementById("Option1").checked) {
+      displaySomething("Proceeds CSV ready to save!");
       createSaveCSVButton();
     } else if (document.getElementById("Option2").checked) {
+      displaySomething("TurboTax TXF ready to save!");
       createSaveTXFButton();
     }
   };
@@ -52,7 +51,8 @@ function createSaveCSVButton() {
   var save_csv_button = document.createElement("button");
   save_csv_button.innerHTML = "Save Proceeds CSV to Download Folder";
   var body = document.getElementsByTagName("body")[0];
-  body.appendChild(save_csv_button);
+  var e = document.getElementById("button1");
+  body.insertBefore(save_csv_button, e);
   save_csv_button.addEventListener("click", function () {
     saveTextAsFile(createOutputCSV(), inputFileName + "-Proceeds.csv");
     alert("File saved to Download Folder");
@@ -79,7 +79,8 @@ function createSaveTXFButton() {
   var save_txf_button = document.createElement("button");
   save_txf_button.innerHTML = "Save TurboTax TXF to Download Folder";
   var body = document.getElementsByTagName("body")[0];
-  body.appendChild(save_txf_button);
+  var e = document.getElementById("button1");
+  body.insertBefore(save_txf_button, e);
   save_txf_button.addEventListener("click", function () {
     saveTextAsFile(createOutputTXF(), inputFileName + "-TurboTax.txf");
     alert("File saved to Download Folder");
