@@ -27,8 +27,64 @@
       ><input type="radio" name="option" id="Option2" value="Option2" />Create
       TurboTax TXF</label
     >
-
+    <br />
+    <br />
+    <label for="timeframe">Only Generate Proceeds for Calendar Year:</label>
+    <select name="timeframe" id="timeframe">
+      <option value="AllTime">All</option>
+      <option value="2020">2020</option>
+      <option value="2021">2021</option>
+    </select>
+    <br />
+    <br />
+    ************************
     <h3></h3>
+    <p>
+      This conversion requires the Coinbase csv header line to be exactly this:
+      <br />
+      <br />
+      Timestamp,Transaction Type,Asset,Quantity Transacted,USD Spot Price at
+      Transaction,USD Subtotal,USD Total (inclusive of fees),USD Fees,Notes
+      <br />
+      <br />
+
+      Other Notes:
+    </p>
+    <ul>
+      <li>Conversion uses only the FIFO method (for now)</li>
+      <li>Send actions are treated as Sell actions</li>
+      <li>
+        Receive actions are treated as Buy actions with current spot at Receive
+        time
+      </li>
+      <li>Convert actions are treated as a Sell followed by a Buy</li>
+      <li>
+        A Sell action can generate multiple sales events in the output if more
+        than one Buy is used. For example if you Buy 100 shares and then Buy 50
+        shares at a different price, when you Sell 150 shares, it will generate
+        two proceed sales, one from each Buy transaction.
+      </li>
+      <li>
+        The txf file created can be imported into TurboTax but there appears to
+        be a bug that doesn't add Sale Category to the import so TT will flag
+        the sales info as being incomplete. I have read on a TT forum that you
+        can ignore the warning and keep going but I haven't tried this myself.
+      </li>
+      <li>
+        If you create and download a CSV from Coinbase, be sure you include all
+        transactions that will be needed to compute sales information, even if
+        they are from a different year. I choose "All Time". But, if you only
+        want the output produced here to contain transanctions for 2020, choose
+        it above in the Proceeds Calendar Year dropdown.
+      </li>
+      <li>
+        Do NOT ASSUME that all the output proceeds are correct! Double check it.
+      </li>
+    </ul>
+    <p>
+      If you have an accounting background and wish me to change how I'm
+      handling certain actions, please let me know.
+    </p>
     <script src="index.js"></script>
   </body>
 </html>

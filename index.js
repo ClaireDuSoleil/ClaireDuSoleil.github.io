@@ -88,7 +88,7 @@ function createSaveTXFButton() {
 }
 
 function createOutputTXF() {
-  var output = "V041\r\n";
+  var output = "V042\r\n";
   output += "Aclaire\r\n";
   var date = new Date();
 
@@ -264,12 +264,9 @@ function processConversion(item) {
     item.note
   );
   processSubtractBank(sellTrans);
-  console.log(sellTrans);
-
   //now we have to parse out the notes to figure out what we bought and how much
   var delimiter = " ";
   var elements = item.note.split(delimiter);
-  console.log(elements);
 
   var subTotal = item.usdSubtotal;
   let addTrans = new Transaction(
@@ -284,7 +281,6 @@ function processConversion(item) {
     item.fees,
     item.note
   );
-  console.log(addTrans);
   processAddBank(addTrans);
 }
 
@@ -366,24 +362,28 @@ class Bank {
     //using FIFO method to compute proceeds
     for (var i = 0; i < this.txArray.length; i++) {
       if (this.txArray[i].quantity == 0) continue;
+      var skipProceeds = false;
+      var e = document.getElementById("timeframe");
+      if (e.value != "AllTime") {
+        const date1 = new Date(tx.date);
+        if (date1.getFullYear().toString() != e.value) skipProceeds = true;
+      }
       if (runningQuantity <= this.txArray[i].quantity) {
-        console.log(
-          "using full " + runningQuantity + " " + this.txArray[i].quantity
-        );
         this.txArray[i].quantity -= runningQuantity;
         this.totalQuantity -= runningQuantity;
         var costBasis = runningQuantity * this.txArray[i].basisSpot;
         var saleProceeds = runningQuantity * tx.basisSpot;
-
-        var myProceeds = new Proceeds(
-          this.txArray[i].date,
-          tx.date,
-          tx.asset,
-          runningQuantity,
-          costBasis,
-          saleProceeds
-        );
-        proceedsArray.push(myProceeds);
+        if (!skipProceeds) {
+          var myProceeds = new Proceeds(
+            this.txArray[i].date,
+            tx.date,
+            tx.asset,
+            runningQuantity,
+            costBasis,
+            saleProceeds
+          );
+          proceedsArray.push(myProceeds);
+        }
         runningQuantity = 0;
         return;
       }
@@ -394,16 +394,18 @@ class Bank {
         this.txArray.quantity = 0;
         var costBasis = numberSold * this.txArray[i].basisSpot;
         var saleProceeds = numberSold * tx.basisSpot;
-        var myProceeds = new Proceeds(
-          this.txArray[i].date,
-          tx.date,
-          tx.asset,
-          numberSold,
-          costBasis,
-          saleProceeds
-        );
+        if (!skipProceeds) {
+          var myProceeds = new Proceeds(
+            this.txArray[i].date,
+            tx.date,
+            tx.asset,
+            numberSold,
+            costBasis,
+            saleProceeds
+          );
+          proceedsArray.push(myProceeds);
+        }
         runningQuantity -= numberSold;
-        proceedsArray.push(myProceeds);
       }
     }
     console.log(
