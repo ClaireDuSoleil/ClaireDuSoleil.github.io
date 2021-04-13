@@ -313,7 +313,7 @@ class Transaction {
     if (_fees != "") this.fees = parseFloat(_fees);
     else this.fees = 0.0;
     this.note = _note;
-    if (this.usdTotal > 0) this.basisSpot = this.usdTotal / this.quantity;
+    if (this.usdSubTotal > 0) this.basisSpot = this.usdSubTotal / this.quantity;
     else this.basisSpot = this.spot;
   }
 }
