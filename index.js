@@ -16,7 +16,7 @@ async function onButtonClicked() {
     !document.getElementById("Option1").checked &&
     !document.getElementById("Option2").checked
   ) {
-    alert("please select output type as csv or txf");
+    alert("Please select output type as csv or txf");
     return;
   }
   let files = await selectFile(".csv");
@@ -102,6 +102,8 @@ function createOutputTXF() {
     date.getFullYear() +
     "\r\n";
   // N321 is supposed to mean short-term sale but TT is ignoring it
+  // If TTax fixes this then 323 is long-term, I think, but there is no point
+  // figuring this out if TTax just ignores it  :(
   for (var i = 0; i < proceedsArray.length; i++) {
     output += "^\r\nTD\r\nN321\r\nC1\r\nL1\r\n";
     output += "P" + proceedsArray[i].quantity;
@@ -392,7 +394,7 @@ class Bank {
       if (runningQuantity > this.txArray[i].quantity) {
         var numberSold = this.txArray[i].quantity;
         this.totalQuantity -= numberSold;
-        this.txArray.quantity = 0;
+        this.txArray[i].quantity = 0;
         var costBasis = numberSold * this.txArray[i].basisSpot;
         var saleProceeds = numberSold * tx.basisSpot;
         if (!skipProceeds) {
@@ -409,6 +411,9 @@ class Bank {
         runningQuantity -= numberSold;
       }
     }
+    alert(
+      "ERROR: Not enough " + tx.asset + " banked to cover sale on " + tx.date
+    );
     console.log(
       "error, not enough " + tx.asset + " banked to cover this sale!!"
     );
