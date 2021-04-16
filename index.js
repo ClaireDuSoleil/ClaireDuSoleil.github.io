@@ -62,13 +62,14 @@ function createSaveCSVButton() {
 
 function createOutputCSV() {
   var output =
-    "Date Acquired, Date Disposed, Asset, Quantity, Basis, Proceeds, Gain/Loss\r\n";
+    "Date Acquired, Date Disposed, Asset, Quantity, Basis, Basis-Spot, Proceeds, Gain/Loss\r\n";
   for (var i = 0; i < proceedsArray.length; i++) {
     output += proceedsArray[i].dateAcquired + ",";
     output += proceedsArray[i].dateDisposed + ",";
     output += proceedsArray[i].assetName + ",";
     output += proceedsArray[i].quantity + ",";
     output += proceedsArray[i].basis + ",";
+    output += proceedsArray[i].basis / proceedsArray[i].quantity + ",";
     output += proceedsArray[i].proceeds + ",";
     output += proceedsArray[i].gainLoss + "\r\n";
   }
