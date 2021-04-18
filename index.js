@@ -5,6 +5,8 @@ let tranArray = new Array();
 let origTranArray = new Array();
 let bankArray = new Array();
 let proceedsArray = new Array();
+let combinedProceedsArray = new Array();
+let combineSellTransactions = false;
 
 function displaySomething(contents) {
   var element = document.getElementById("file-content");
@@ -33,8 +35,10 @@ async function onButtonClicked() {
     var contents = e.target.result;
     processData(contents);
     tranArray.forEach(analyzeTx);
+    combineProceeds();
     console.log(tranArray);
     console.log(proceedsArray);
+    console.log(combinedProceedsArray);
     console.log(bankArray);
     if (document.getElementById("Option1").checked) {
       displaySomething("Proceeds CSV ready to save!");
@@ -60,18 +64,83 @@ function createSaveCSVButton() {
   });
 }
 
+function combineProceeds() {
+  //first loop thru the proceeds array and combine sell actions that have the same
+  //date and asset to be only one action with the average basis
+  for (var j = 1; j < proceedsArray.length; j++) {
+    let proceeds = proceedsArray[j - 1];
+    let nextProceeds = proceedsArray[j];
+    if (
+      proceeds.dateDisposed == nextProceeds.dateDisposed &&
+      proceeds.assetName == nextProceeds.assetName
+    ) {
+      proceeds.usedInCombo = true;
+      nextProceeds.usedInCombo = true;
+      var found = false;
+      for (var k = 0; k < combinedProceedsArray.length; k++) {
+        if (
+          combinedProceedsArray[k].dateDisposed == nextProceeds.dateDisposed &&
+          combinedProceedsArray[k].asset == nextProceeds.asset
+        ) {
+          found = true;
+          var combProceeds = combinedProceedsArray[k];
+          combProceeds.quantity += nextProceeds.quantity;
+          combProceeds.basis += nextProceeds.basis;
+          combProceeds.basisSpot = combProceeds.basis / combProceeds.quantity;
+          combProceeds.proceeds += nextProceeds.proceeds;
+          combProceeds.gainLoss += nextProceeds.gainLoss;
+        }
+      }
+      if (!found) {
+        //create a new combined sale
+        var myProceeds = new Proceeds(
+          proceeds.dateAcquired,
+          proceeds.dateDisposed,
+          proceeds.assetName,
+          proceeds.quantity + nextProceeds.quantity,
+          proceeds.basis + nextProceeds.basis,
+          proceeds.proceeds + nextProceeds.proceeds
+        );
+        myProceeds.usedInCombo = true;
+        combinedProceedsArray.push(myProceeds);
+      }
+    } else {
+      if (proceeds.usedInCombo == false) combinedProceedsArray.push(proceeds);
+      if (nextProceeds.usedInCombo == false && j == proceedsArray.length - 1)
+        combinedProceedsArray.push(nextProceeds);
+    }
+  }
+}
+
 function createOutputCSV() {
-  var output =
-    "Date Acquired, Date Disposed, Asset, Quantity, Basis, Basis-Spot, Proceeds, Gain/Loss\r\n";
-  for (var i = 0; i < proceedsArray.length; i++) {
-    output += proceedsArray[i].dateAcquired + ",";
-    output += proceedsArray[i].dateDisposed + ",";
-    output += proceedsArray[i].assetName + ",";
-    output += proceedsArray[i].quantity + ",";
-    output += proceedsArray[i].basis + ",";
-    output += proceedsArray[i].basis / proceedsArray[i].quantity + ",";
-    output += proceedsArray[i].proceeds + ",";
-    output += proceedsArray[i].gainLoss + "\r\n";
+  var output = "";
+  if (!combineSellTransactions) {
+    output =
+      "Date Acquired, Date Disposed, Asset, Quantity, Basis, Basis-Spot, Proceeds, Gain/Loss\r\n";
+    for (var i = 0; i < proceedsArray.length; i++) {
+      output += proceedsArray[i].dateAcquired + ",";
+      output += proceedsArray[i].dateDisposed + ",";
+      output += proceedsArray[i].assetName + ",";
+      output += proceedsArray[i].quantity + ",";
+      output += proceedsArray[i].basis + ",";
+      output += proceedsArray[i].basisSpot + ",";
+      output += proceedsArray[i].proceeds + ",";
+      output += proceedsArray[i].gainLoss + "\r\n";
+    }
+  } else {
+    output +=
+      "Date Acquired, Date Disposed, Asset, Quantity, Basis, Basis-Spot, Proceeds, Gain/Loss\r\n";
+    for (var i = 0; i < combinedProceedsArray.length; i++) {
+      if (combinedProceedsArray[i].usedInCombo) output += "Varied,";
+      else output += combinedProceedsArray[i].dateAcquired + ",";
+      output += combinedProceedsArray[i].dateDisposed + ",";
+      output += combinedProceedsArray[i].assetName + ",";
+      output += combinedProceedsArray[i].quantity + ",";
+      output += combinedProceedsArray[i].basis + ",";
+      output += combinedProceedsArray[i].basisSpot + ",";
+      output += combinedProceedsArray[i].proceeds + ",";
+      output += combinedProceedsArray[i].gainLoss + "\r\n";
+    }
   }
   return output;
 }
@@ -335,6 +404,8 @@ class Proceeds {
     this.basis = basis;
     this.proceeds = proceeds;
     this.gainLoss = proceeds - basis;
+    this.basisSpot = this.basis / this.quantity;
+    this.usedInCombo = false;
     var d1 = Date.parse(dateAcquired);
     var d2 = Date.parse(dateDisposed);
     const date1 = new Date(d1);
