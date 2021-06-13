@@ -1,4 +1,5 @@
 // Content wrapper element
+//
 let contentElement = document.getElementById("content");
 let inputFileName = "";
 let tranArray = new Array();
