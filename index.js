@@ -1,38 +1,162 @@
 // Content wrapper element
 
-let contentElement = document.getElementById("content");
-let inputFileName = "";
+let contentElement = document.getElementById('content');
+let inputFileName = '';
 let tranArray = new Array();
 let origTranArray = new Array();
 let bankArray = new Array();
 let proceedsArray = new Array();
 let combinedProceedsArray = new Array();
-let combineSellTransactions = false;
+var dataObject = [];
 
-function displaySomething(contents) {
-  var element = document.getElementById("file-content");
-  element.textContent = contents;
+//mainline**********************************************************
+
+Handsontable.renderers.registerRenderer('negativeValueRenderer', negativeValueRenderer);
+var hotElement = document.querySelector('#hot');
+var hotElementContainer = hotElement.parentNode;
+var hotSettings = {
+  data: dataObject,
+  columns: [
+    {
+      //0
+      data: 'delAction',
+      type: 'text',
+    },
+    {
+      //1
+      data: 'dateAcquired',
+      tyep: 'text',
+    },
+    {
+      //2
+      data: 'dateDisposed',
+      type: 'text',
+    },
+    {
+      //3
+      data: 'assetName',
+      type: 'text',
+    },
+    {
+      //4
+      data: 'quantity',
+      type: 'numeric',
+      numericFormat: {
+        pattern: '0.0000',
+      },
+    },
+    {
+      //5
+      data: 'basis',
+      type: 'numeric',
+      numericFormat: {
+        pattern: '0.0000',
+      },
+    },
+    {
+      //6
+      data: 'basisSpot',
+      type: 'numeric',
+      numericFormat: {
+        pattern: '0.0000',
+      },
+    },
+    {
+      //7
+      data: 'proceeds',
+      type: 'numeric',
+      numericFormat: {
+        pattern: '0.0000',
+      },
+    },
+    {
+      //8
+      data: 'gainLoss',
+      type: 'numeric',
+      numericFormat: {
+        pattern: '0.00',
+      },
+    },
+  ],
+  stretchH: 'all',
+  width: 1005,
+  autoWrapRow: true,
+  manualRowResize: true,
+  manualColumnResize: true,
+  rowHeaders: false,
+  licenseKey: 'non-commercial-and-evaluation',
+  colHeaders: [
+    'Del',
+    'Date Acquired',
+    'Date Disposed',
+    'Asset',
+    'Quantity',
+    'Basis',
+    'Basis-Spot',
+    'Proceeds',
+    'Gain/Loss',
+  ],
+  manualRowMove: true,
+  manualColumnMove: true,
+  contextMenu: false,
+  filters: true,
+  language: 'en-US',
+  cells: function (row, col) {
+    var cellProperties = {};
+    var data = this.instance.getData();
+    if (col == 0) {
+      cellProperties.renderer = firstColRenderer;
+      cellProperties.readOnly = true;
+    } else {
+      cellProperties.renderer = 'negativeValueRenderer';
+    }
+
+    return cellProperties;
+  },
+};
+var hot = new Handsontable(hotElement, hotSettings);
+hot.addHook('afterOnCellMouseDown', function (event, coords, TD) {
+  if (coords.col === 0) {
+    hot.alter('remove_row', coords.row);
+  }
+  var vr = hot.countVisibleRows();
+  if (vr < dataObject.length || vr < 10) return;
+  var h = dataObject.length * 15 + 50;
+  if (h > 500) h = 500;
+  hot.updateSettings({height: h});
+});
+
+document.getElementById('hot').style.display = 'none';
+document.getElementById('canEdit').style.display = 'none';
+
+//start of functions*************************************************
+
+function firstColRenderer(instance, td, row, col, prop, value, cellProperties) {
+  Handsontable.renderers.TextRenderer.apply(this, arguments);
+  td.style.fontWeight = 'bold';
+  td.className = 'make-me-red';
 }
+
+function negativeValueRenderer(instance, td, row, col, prop, value, cellProperties) {
+  Handsontable.renderers.TextRenderer.apply(this, arguments);
+  if (parseFloat(value, 10) < 0) {
+    td.className = 'make-me-red';
+  }
+}
+
 // Button callback
 async function onButtonClicked() {
-  if (
-    !document.getElementById("Option1").checked &&
-    !document.getElementById("Option2").checked
-  ) {
-    alert("Please select output type as csv or txf");
-    return;
-  }
-  let files = await selectFile(".csv");
+  let files = await selectFile('.csv');
   var file = files[0];
   inputFileName = file.name.substring(0, file.name.length - 4);
   if (!file) {
-    console.log("nothing");
+    console.log('nothing');
     return;
   }
   var reader = new FileReader();
   reader.onload = function (e) {
-    document.getElementById("button1").style.visibility = "hidden";
-    document.getElementById("content").style.visibility = "hidden";
+    document.getElementById('button1').style.visibility = 'hidden';
+    document.getElementById('content').style.visibility = 'hidden';
     var contents = e.target.result;
     processData(contents);
     tranArray.forEach(analyzeTx);
@@ -41,28 +165,127 @@ async function onButtonClicked() {
     console.log(proceedsArray);
     console.log(combinedProceedsArray);
     console.log(bankArray);
-    if (document.getElementById("Option1").checked) {
-      displaySomething("Proceeds CSV ready to save!");
-      createSaveCSVButton();
-    } else if (document.getElementById("Option2").checked) {
-      displaySomething("TurboTax TXF ready to save!");
-      createSaveTXFButton();
-    }
+    document.getElementById('button1').style.display = 'none';
+    document.getElementById('myTitle').style.display = 'none';
+    document.getElementById('div2').style.display = 'none';
+    document.getElementById('canEdit').style.display = 'block';
+    document.getElementById('hot').style.display = 'block';
+    fillHotDataFromProceeds();
+    hot.loadData(dataObject);
+    createSaveCSVButton();
+    createSaveTXFButton();
+    createResetButton();
+    createFilterDropdown();
   };
   reader.readAsText(file);
 }
 
+function fillHotDataFromProceeds() {
+  dataObject = [];
+  proceedsArray.forEach((e) => {
+    var obj = {
+      delAction: '\u274c',
+      dateAcquired: e.dateAcquired,
+      dateDisposed: e.dateDisposed,
+      assetName: e.assetName,
+      quantity: e.quantity,
+      basis: e.basis,
+      basisSpot: e.basisSpot,
+      proceeds: parseFloat(e.proceeds).toFixed(2),
+      gainLoss: parseFloat(e.gainLoss).toFixed(2),
+    };
+    dataObject.push(obj);
+  });
+  var h = dataObject.length * 15 + 50;
+  if (h > 500) h = 500;
+  hot.updateSettings({height: h});
+}
+
+function fillHotDataFromArray(newArray) {
+  dataObject = [];
+  newArray.forEach((e, index) => {
+    var obj = {
+      delAction: '\u274c',
+      dateAcquired: e[1],
+      dateDisposed: e[2],
+      assetName: e[3],
+      quantity: e[4],
+      basis: e[5],
+      basisSpot: e[6],
+      proceeds: e[7],
+      gainLoss: e[8],
+    };
+    dataObject.push(obj);
+  });
+  var h = dataObject.length * 15 + 50;
+  if (h > 500) h = 500;
+  hot.updateSettings({height: h});
+}
+
 function createSaveCSVButton() {
-  var save_csv_button = document.createElement("button");
-  save_csv_button.innerHTML = "Save Proceeds CSV to Download Folder";
-  var body = document.getElementsByTagName("body")[0];
-  var e = document.getElementById("button1");
-  body.insertBefore(save_csv_button, e);
-  save_csv_button.addEventListener("click", function () {
-    saveTextAsFile(createOutputCSV(), inputFileName + "-Proceeds.csv");
-    alert("File saved to Download Folder");
+  var save_csv_button = document.createElement('button');
+  save_csv_button.innerHTML = 'Export as CSV to Downloads Folder';
+  var div1 = document.getElementById('div1');
+  var e = document.getElementById('hot');
+  div1.insertBefore(save_csv_button, e);
+  save_csv_button.style.marginTop = '10px';
+  save_csv_button.style.marginBottom = '20px';
+  save_csv_button.addEventListener('click', function () {
+    saveTextAsFile(createOutputCSV(), inputFileName + '-Proceeds.csv');
+    alert('File saved to Download Folder');
+  });
+}
+
+function createResetButton() {
+  var reset_button = document.createElement('button');
+  reset_button.innerHTML = 'Start Over';
+  var div1 = document.getElementById('div1');
+  var e = document.getElementById('hot');
+  reset_button.style.marginLeft = '50px';
+  div1.insertBefore(reset_button, e);
+  reset_button.addEventListener('click', function () {
     window.location.reload();
   });
+}
+
+function createFilterDropdown() {
+  var values = ['', '2022', '2021', '2020', '2019'];
+  var select = document.createElement('select');
+  select.name = 'filterYear';
+  select.id = 'filterYear';
+  for (const val of values) {
+    var option = document.createElement('option');
+    option.value = val;
+    option.text = val.charAt(0).toUpperCase() + val.slice(1);
+    select.appendChild(option);
+  }
+  select.style.marginTop = '30px';
+  select.style.width = '80px';
+  select.style.appearance = 'auto';
+  var label = document.createElement('label');
+  label.innerHTML = 'Filter table data by year: ';
+  label.htmlFor = 'filterYear';
+
+  var applyFilterButton = document.createElement('button');
+  applyFilterButton.style.marginLeft = '20px';
+  applyFilterButton.innerHTML = 'Apply Filter for Selected Year';
+  document.getElementById('div1').appendChild(label).appendChild(select);
+  document.getElementById('div1').appendChild(applyFilterButton);
+  applyFilterButton.addEventListener('click', function () {
+    filterByYear(select.value);
+  });
+}
+
+function filterByYear(value) {
+  if (value.length == 0) return;
+  var oldData = hot.getData();
+  var newArray = oldData.filter(function (dataRow) {
+    const date1 = new Date(dataRow[2]);
+    return date1.getFullYear().toString() == value;
+  });
+  fillHotDataFromArray(newArray);
+  hot.loadData(dataObject);
+  hot.render();
 }
 
 function combineProceeds() {
@@ -71,10 +294,7 @@ function combineProceeds() {
   for (var j = 1; j < proceedsArray.length; j++) {
     let proceeds = proceedsArray[j - 1];
     let nextProceeds = proceedsArray[j];
-    if (
-      proceeds.dateDisposed == nextProceeds.dateDisposed &&
-      proceeds.assetName == nextProceeds.assetName
-    ) {
+    if (proceeds.dateDisposed == nextProceeds.dateDisposed && proceeds.assetName == nextProceeds.assetName) {
       proceeds.usedInCombo = true;
       nextProceeds.usedInCombo = true;
       var found = false;
@@ -107,92 +327,94 @@ function combineProceeds() {
       }
     } else {
       if (proceeds.usedInCombo == false) combinedProceedsArray.push(proceeds);
-      if (nextProceeds.usedInCombo == false && j == proceedsArray.length - 1)
-        combinedProceedsArray.push(nextProceeds);
+      if (nextProceeds.usedInCombo == false && j == proceedsArray.length - 1) combinedProceedsArray.push(nextProceeds);
     }
   }
 }
 
 function createOutputCSV() {
-  var output = "";
-  if (!combineSellTransactions) {
-    output =
-      "Date Acquired, Date Disposed, Asset, Quantity, Basis, Basis-Spot, Proceeds, Gain/Loss\r\n";
-    for (var i = 0; i < proceedsArray.length; i++) {
-      output += proceedsArray[i].dateAcquired + ",";
-      output += proceedsArray[i].dateDisposed + ",";
-      output += proceedsArray[i].assetName + ",";
-      output += proceedsArray[i].quantity + ",";
-      output += proceedsArray[i].basis + ",";
-      output += proceedsArray[i].basisSpot + ",";
-      output += proceedsArray[i].proceeds + ",";
-      output += proceedsArray[i].gainLoss + "\r\n";
-    }
-  } else {
-    output +=
-      "Date Acquired, Date Disposed, Asset, Quantity, Basis, Basis-Spot, Proceeds, Gain/Loss\r\n";
-    for (var i = 0; i < combinedProceedsArray.length; i++) {
-      if (combinedProceedsArray[i].usedInCombo) output += "Varied,";
-      else output += combinedProceedsArray[i].dateAcquired + ",";
-      output += combinedProceedsArray[i].dateDisposed + ",";
-      output += combinedProceedsArray[i].assetName + ",";
-      output += combinedProceedsArray[i].quantity + ",";
-      output += combinedProceedsArray[i].basis + ",";
-      output += combinedProceedsArray[i].basisSpot + ",";
-      output += combinedProceedsArray[i].proceeds + ",";
-      output += combinedProceedsArray[i].gainLoss + "\r\n";
-    }
+  var hotData = hot.getData();
+  var output = '';
+  output = 'Date Acquired, Date Disposed, Asset, Quantity, Basis, Basis-Spot, Proceeds, Gain/Loss\r\n';
+  for (var i = 0; i < hotData.length; i++) {
+    output += hotData[i][1] + ',';
+    output += hotData[i][2] + ',';
+    output += hotData[i][3] + ',';
+    output += hotData[i][4] + ',';
+    output += hotData[i][5] + ',';
+    output += hotData[i][6] + ',';
+    output += hotData[i][7] + ',';
+    output += hotData[i][8] + '\r\n';
   }
   return output;
 }
 
 function createSaveTXFButton() {
-  var save_txf_button = document.createElement("button");
-  save_txf_button.innerHTML = "Save TurboTax TXF to Download Folder";
-  var body = document.getElementsByTagName("body")[0];
-  var e = document.getElementById("button1");
-  body.insertBefore(save_txf_button, e);
-  save_txf_button.addEventListener("click", function () {
-    saveTextAsFile(createOutputTXF(), inputFileName + "-TurboTax.txf");
-    alert("File saved to Download Folder");
-    window.location.reload();
+  var save_txf_button = document.createElement('button');
+  save_txf_button.innerHTML = 'Export as TurboTax TXF to Downloads Folder';
+  var div1 = document.getElementById('div1');
+  var e = document.getElementById('hot');
+  save_txf_button.style.marginLeft = '50px';
+  div1.insertBefore(save_txf_button, e);
+  save_txf_button.addEventListener('click', function () {
+    saveTextAsFile(createOutputTXF(), inputFileName + '-TurboTax.txf');
+    alert('File saved to Download Folder');
   });
 }
 
 function createOutputTXF() {
-  var output = "V042\r\n";
-  output += "Aclaire\r\n";
+  var hotData = hot.getData();
+  var output = 'V042\r\n';
+  output += 'Aclaire\r\n';
   var date = new Date();
 
   output +=
-    "D " +
-    ("0" + (date.getMonth() + 1)).slice(-2) +
-    "/" +
-    ("0" + date.getUTCDate()).slice(-2) +
-    "/" +
+    'D ' +
+    ('0' + (date.getMonth() + 1)).slice(-2) +
+    '/' +
+    ('0' + date.getUTCDate()).slice(-2) +
+    '/' +
     date.getFullYear() +
-    "\r\n";
-  // N321 is supposed to mean short-term sale but TT is ignoring it
-  // If TTax fixes this then 323 is long-term, I think, but there is no point
-  // figuring this out if TTax just ignores it  :(
-  for (var i = 0; i < proceedsArray.length; i++) {
-    output += "^\r\nTD\r\nN321\r\nC1\r\nL1\r\n";
-    output += "P" + proceedsArray[i].quantity;
-    output += " " + proceedsArray[i].assetName + "\r\n";
-    output += "D" + proceedsArray[i].txfDateAcq + "\r\n";
-    output += "D" + proceedsArray[i].txfDateDis + "\r\n";
-    output += "$" + proceedsArray[i].basis + "\r\n";
-    output += "$" + proceedsArray[i].proceeds + "\r\n";
+    '\r\n';
+  // N321 is short-term sale
+  // N323 is long-term
+  for (var i = 0; i < hotData.length; i++) {
+    var dateAcquired = hotData[i][1];
+    var dateDisposed = hotData[i][2];
+    var d1 = Date.parse(dateAcquired);
+    var d2 = Date.parse(dateDisposed);
+    var saleCode = 'N321';
+    const date1 = new Date(d1);
+    const date2 = new Date(d2);
+    const diffTime = Math.abs(date2 - date1);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays > 365) saleCode = 'N323'; //todo fix for a leap year
+
+    var txfDateAcq = ('0' + (date1.getMonth() + 1)).slice(-2);
+    txfDateAcq += '/' + ('0' + date1.getUTCDate()).slice(-2);
+    txfDateAcq += '/' + date1.getFullYear();
+    var txfDateDis = ('0' + (date2.getMonth() + 1)).slice(-2);
+    txfDateDis += '/' + ('0' + date2.getUTCDate()).slice(-2);
+    txfDateDis += '/' + date2.getFullYear();
+    output += '^\r\nTD\r\n';
+    output += saleCode;
+    output += '\r\nC1\r\nL1\r\n';
+    output += 'P' + hotData[i][4];
+    output += ' ' + hotData[i][3] + '\r\n';
+    output += 'D' + txfDateAcq + '\r\n';
+    output += 'D' + txfDateDis + '\r\n';
+    output += '$' + hotData[i][5] + '\r\n';
+    output += '$' + hotData[i][7] + '\r\n';
   }
-  output += "^\r\n";
+  output += '^\r\n';
   return output;
 }
 
 function saveTextAsFile(textToWrite, fileNameToSaveAs) {
-  var textFileAsBlob = new Blob([textToWrite], { type: "text/plain" });
-  var downloadLink = document.createElement("a");
+  var textFileAsBlob = new Blob([textToWrite], {type: 'text/plain'});
+  var downloadLink = document.createElement('a');
   downloadLink.download = fileNameToSaveAs;
-  downloadLink.innerHTML = "Download File";
+  downloadLink.innerHTML = 'Download File';
   if (window.webkitURL != null) {
     // Chrome allows the link to be clicked
     // without actually adding it to the DOM.
@@ -202,7 +424,7 @@ function saveTextAsFile(textToWrite, fileNameToSaveAs) {
     // before it can be clicked.
     downloadLink.href = window.URL.createObjectURL(textFileAsBlob);
     downloadLink.onclick = destroyClickedElement;
-    downloadLink.style.display = "none";
+    downloadLink.style.display = 'none';
     document.body.appendChild(downloadLink);
   }
   downloadLink.click();
@@ -211,8 +433,8 @@ function saveTextAsFile(textToWrite, fileNameToSaveAs) {
 // ---- function definition ----
 function selectFile(contentType) {
   return new Promise((resolve) => {
-    let input = document.createElement("input");
-    input.type = "file";
+    let input = document.createElement('input');
+    input.type = 'file';
     input.multiple = false;
     input.accept = contentType;
 
@@ -229,29 +451,29 @@ function processData(allText) {
   startRow = 0;
   var allTextLines = allText.split(/\r\n|\n/);
   for (var i = 0; i < allTextLines.length; i++) {
-    if (allTextLines[i].includes("Timestamp")) {
+    if (allTextLines[i].includes('Timestamp')) {
       startRow = i;
       break;
     }
   }
 
-  var headers = allTextLines[startRow].split(",");
+  var headers = allTextLines[startRow].split(',');
   for (var i = startRow + 1; i < allTextLines.length; i++) {
     var tmp = allTextLines[i].toString();
     //remove those pesky double double quotes first before splitting by comma
-    tmp = tmp.replace(/""/g, "");
+    tmp = tmp.replace(/""/g, '');
     var data = splitCSVButIgnoreCommasInDoublequotes(tmp);
     if (data.length == headers.length) {
-      var tarr = " ";
+      var tarr = ' ';
       for (var j = 0; j < headers.length; j++) {
-        data[j] = data[j].replace(/['"]+/g, "");
+        data[j] = data[j].replace(/['"]+/g, '');
         if (j == 0) {
-          tarr = '{"' + headers[j] + '"' + ":" + '"' + data[j] + '"';
+          tarr = '{"' + headers[j] + '"' + ':' + '"' + data[j] + '"';
         } else {
-          tarr += ' , "' + headers[j] + '"' + ":" + '"' + data[j] + '"';
+          tarr += ' , "' + headers[j] + '"' + ':' + '"' + data[j] + '"';
         }
       }
-      tarr += "}";
+      tarr += '}';
       var myobj = JSON.parse(tarr);
       const unixTimeZero = Date.parse(myobj.Timestamp);
 
@@ -260,13 +482,13 @@ function processData(allText) {
       let myTrans = new Transaction(
         myobj.Timestamp,
         unixTimeZero,
-        myobj["Transaction Type"],
+        myobj['Transaction Type'],
         myobj.Asset,
-        myobj["Quantity Transacted"],
-        myobj["USD Spot Price at Transaction"],
-        myobj["USD Subtotal"],
-        myobj["USD Total (inclusive of fees)"],
-        myobj["USD Fees"],
+        myobj['Quantity Transacted'],
+        myobj['USD Spot Price at Transaction'],
+        myobj['USD Subtotal'],
+        myobj['USD Total (inclusive of fees)'],
+        myobj['USD Fees'],
         myobj.Notes
       );
       tranArray.push(myTrans);
@@ -274,30 +496,28 @@ function processData(allText) {
       let myOrigTrans = new Transaction(
         myobj.Timestamp,
         unixTimeZero,
-        myobj["Transaction Type"],
+        myobj['Transaction Type'],
         myobj.Asset,
-        myobj["Quantity Transacted"],
-        myobj["USD Spot Price at Transaction"],
-        myobj["USD Subtotal"],
-        myobj["USD Total (inclusive of fees)"],
-        myobj["USD Fees"],
+        myobj['Quantity Transacted'],
+        myobj['USD Spot Price at Transaction'],
+        myobj['USD Subtotal'],
+        myobj['USD Total (inclusive of fees)'],
+        myobj['USD Fees'],
         myobj.Notes
       );
       origTranArray.push(myOrigTrans);
     } else {
       //console.log(data);
-      if (data.length > 1) console.log("there is a bad line in here");
+      if (data.length > 1) console.log('there is a bad line in here');
     }
   }
-  tranArray.sort((a, b) =>
-    a.unixDate > b.unixDate ? 1 : b.unixDate > a.unixDate ? -1 : 0
-  );
+  tranArray.sort((a, b) => (a.unixDate > b.unixDate ? 1 : b.unixDate > a.unixDate ? -1 : 0));
 }
 
 function analyzeTx(item, index, arr) {
-  if (item.action == "Buy" || item.action == "Receive") processAddBank(item);
-  if (item.action == "Sell" || item.action == "Send") processSubtractBank(item);
-  if (item.action == "Convert") processConversion(item);
+  if (item.action == 'Buy' || item.action == 'Receive') processAddBank(item);
+  if (item.action == 'Sell' || item.action == 'Send') processSubtractBank(item);
+  if (item.action == 'Convert') processConversion(item);
 }
 
 function processAddBank(item) {
@@ -307,7 +527,7 @@ function processAddBank(item) {
       return;
     }
   }
-  console.log("creating bank for:" + item.asset);
+  console.log('creating bank for:' + item.asset);
   let myBank = new Bank(item.asset);
   myBank.addTx(item);
   bankArray.push(myBank);
@@ -320,7 +540,7 @@ function processSubtractBank(item) {
       return;
     }
   }
-  console.log("error, asset to be sold not found in banks:" + item.asset);
+  console.log('error, asset to be sold not found in banks:' + item.asset);
 }
 
 function processConversion(item) {
@@ -328,7 +548,7 @@ function processConversion(item) {
   let sellTrans = new Transaction(
     item.date,
     item.unixDate,
-    "Sell",
+    'Sell',
     item.asset,
     item.quantity,
     item.spot,
@@ -339,14 +559,14 @@ function processConversion(item) {
   );
   processSubtractBank(sellTrans);
   //now we have to parse out the notes to figure out what we bought and how much
-  var delimiter = " ";
+  var delimiter = ' ';
   var elements = item.note.split(delimiter);
 
   var subTotal = item.usdSubtotal;
   let addTrans = new Transaction(
     item.date,
     item.unixDate,
-    "Buy",
+    'Buy',
     elements[5],
     parseFloat(elements[4]),
     item.usdTotal / elements[4],
@@ -359,29 +579,18 @@ function processConversion(item) {
 }
 
 class Transaction {
-  constructor(
-    _date,
-    _unixDate,
-    _action,
-    _asset,
-    _quantity,
-    _spot,
-    _subtotal,
-    _total,
-    _fees,
-    _note
-  ) {
+  constructor(_date, _unixDate, _action, _asset, _quantity, _spot, _subtotal, _total, _fees, _note) {
     this.date = _date;
     this.unixDate = _unixDate;
     this.action = _action;
     this.asset = _asset;
     this.quantity = parseFloat(_quantity);
     this.spot = parseFloat(_spot);
-    if (_subtotal != "") this.usdSubtotal = parseFloat(_subtotal);
+    if (_subtotal != '') this.usdSubtotal = parseFloat(_subtotal);
     else this.usdSubtotal = 0.0;
-    if (_total != "") this.usdTotal = parseFloat(_total);
+    if (_total != '') this.usdTotal = parseFloat(_total);
     else this.usdTotal = 0.0;
-    if (_fees != "") this.fees = parseFloat(_fees);
+    if (_fees != '') this.fees = parseFloat(_fees);
     else this.fees = 0.0;
     this.note = _note;
     if (this.usdTotal > 0) this.basisSpot = this.usdTotal / this.quantity;
@@ -390,14 +599,7 @@ class Transaction {
 }
 
 class Proceeds {
-  constructor(
-    dateAcquired,
-    dateDisposed,
-    assetName,
-    quantity,
-    basis,
-    proceeds
-  ) {
+  constructor(dateAcquired, dateDisposed, assetName, quantity, basis, proceeds) {
     this.dateAcquired = dateAcquired;
     this.dateDisposed = dateDisposed;
     this.assetName = assetName;
@@ -408,17 +610,6 @@ class Proceeds {
     this.gainLoss = this.gainLoss.toPrecision(12);
     this.basisSpot = this.basis / this.quantity;
     this.usedInCombo = false;
-    var d1 = Date.parse(dateAcquired);
-    var d2 = Date.parse(dateDisposed);
-    const date1 = new Date(d1);
-    const date2 = new Date(d2);
-    this.txfDateAcq = ("0" + (date1.getMonth() + 1)).slice(-2);
-    this.txfDateAcq += "/" + ("0" + date1.getUTCDate()).slice(-2);
-    this.txfDateAcq += "/" + date1.getFullYear();
-
-    this.txfDateDis = ("0" + (date2.getMonth() + 1)).slice(-2);
-    this.txfDateDis += "/" + ("0" + date2.getUTCDate()).slice(-2);
-    this.txfDateDis += "/" + date2.getFullYear();
   }
 }
 
@@ -443,11 +634,6 @@ class Bank {
     for (var i = 0; i < this.txArray.length; i++) {
       if (this.txArray[i].quantity == 0) continue;
       var skipProceeds = false;
-      var e = document.getElementById("timeframe");
-      if (e.value != "AllTime") {
-        const date1 = new Date(tx.date);
-        if (date1.getFullYear().toString() != e.value) skipProceeds = true;
-      }
       if (runningQuantity <= this.txArray[i].quantity) {
         this.txArray[i].quantity -= runningQuantity;
         this.totalQuantity -= runningQuantity;
@@ -479,14 +665,7 @@ class Bank {
         var saleProceeds = numberSold * tx.basisSpot;
         saleProceeds = saleProceeds.toPrecision(12);
         if (!skipProceeds) {
-          var myProceeds = new Proceeds(
-            this.txArray[i].date,
-            tx.date,
-            tx.asset,
-            numberSold,
-            costBasis,
-            saleProceeds
-          );
+          var myProceeds = new Proceeds(this.txArray[i].date, tx.date, tx.asset, numberSold, costBasis, saleProceeds);
           proceedsArray.push(myProceeds);
         }
         var num = Number(runningQuantity) - Number(numberSold);
@@ -495,12 +674,8 @@ class Bank {
         //runningQuantity -= numberSold;
       }
     }
-    alert(
-      "ERROR: Not enough " + tx.asset + " banked to cover sale on " + tx.date
-    );
-    console.log(
-      "error, not enough " + tx.asset + " banked to cover this sale!!"
-    );
+    alert('ERROR: Not enough ' + tx.asset + ' banked to cover sale on ' + tx.date);
+    console.log('error, not enough ' + tx.asset + ' banked to cover this sale!!');
   }
 }
 
@@ -512,7 +687,7 @@ class Bank {
 function splitCSVButIgnoreCommasInDoublequotes(str) {
   //split the str first
   //then merge the elments between two double quotes
-  var delimiter = ",";
+  var delimiter = ',';
   var quotes = '"';
   var elements = str.split(delimiter);
   var newElements = [];
@@ -547,3 +722,4 @@ function splitCSVButIgnoreCommasInDoublequotes(str) {
   }
   return newElements;
 }
+//mainline

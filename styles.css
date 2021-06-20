@@ -1,1 +1,13 @@
+.make-me-red {
+  color: red;
+  text-shadow: 0 0 0 red;
+}
 
+.header-text {
+  overflow: hidden;
+  text-overflow: initial;
+  white-space: nowrap;
+  display: block;
+  width: 100%;
+  min-width: 1px;
+}
