@@ -21,6 +21,7 @@ var hotSettings = {
       //0
       data: 'delAction',
       type: 'text',
+      width: '30',
     },
     {
       //1
@@ -189,8 +190,8 @@ function fillHotDataFromProceeds() {
       dateDisposed: e.dateDisposed,
       assetName: e.assetName,
       quantity: e.quantity,
-      basis: e.basis,
-      basisSpot: e.basisSpot,
+      basis: parseFloat(e.basis).toFixed(2),
+      basisSpot: parseFloat(e.basisSpot).toFixed(2),
       proceeds: parseFloat(e.proceeds).toFixed(2),
       gainLoss: parseFloat(e.gainLoss).toFixed(2),
     };
@@ -603,7 +604,7 @@ class Proceeds {
     this.dateAcquired = dateAcquired;
     this.dateDisposed = dateDisposed;
     this.assetName = assetName;
-    this.quantity = quantity;
+    this.quantity = parseFloat(quantity).toPrecision(12);
     this.basis = basis;
     this.proceeds = proceeds;
     this.gainLoss = proceeds - basis;
@@ -722,4 +723,3 @@ function splitCSVButIgnoreCommasInDoublequotes(str) {
   }
   return newElements;
 }
-//mainline
