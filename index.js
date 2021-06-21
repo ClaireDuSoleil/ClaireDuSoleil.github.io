@@ -563,7 +563,6 @@ function processConversion(item) {
   var delimiter = ' ';
   var elements = item.note.split(delimiter);
 
-  var subTotal = item.usdSubtotal;
   let addTrans = new Transaction(
     item.date,
     item.unixDate,
@@ -585,7 +584,7 @@ class Transaction {
     this.unixDate = _unixDate;
     this.action = _action;
     this.asset = _asset;
-    this.quantity = parseFloat(_quantity);
+    this.quantity = Number(parseFloat(_quantity).toPrecision(12));
     this.spot = parseFloat(_spot);
     if (_subtotal != '') this.usdSubtotal = parseFloat(_subtotal);
     else this.usdSubtotal = 0.0;
@@ -599,6 +598,7 @@ class Transaction {
   }
 }
 
+//remember, toPrecision returns a STRING!!
 class Proceeds {
   constructor(dateAcquired, dateDisposed, assetName, quantity, basis, proceeds) {
     this.dateAcquired = dateAcquired;
@@ -608,7 +608,6 @@ class Proceeds {
     this.basis = basis;
     this.proceeds = proceeds;
     this.gainLoss = proceeds - basis;
-    this.gainLoss = this.gainLoss.toPrecision(12);
     this.basisSpot = this.basis / this.quantity;
     this.usedInCombo = false;
   }
@@ -618,15 +617,13 @@ class Bank {
   constructor(assetName) {
     this.assetName = assetName;
     this.txArray = [];
-    this.totalQuantity = 0.0;
+    this.totalQuantity = Number(0.0);
   }
 
   addTx(tx) {
     this.txArray.push(tx);
-    //this.totalQuantity += tx.quantity;
     var num = Number(this.totalQuantity) + Number(tx.quantity);
-    num = num.toPrecision(12);
-    this.totalQuantity = num;
+    this.totalQuantity = Number(num.toPrecision(12));
   }
 
   subtractTx(tx) {
@@ -634,25 +631,21 @@ class Bank {
     //using FIFO method to compute proceeds
     for (var i = 0; i < this.txArray.length; i++) {
       if (this.txArray[i].quantity == 0) continue;
-      var skipProceeds = false;
       if (runningQuantity <= this.txArray[i].quantity) {
         this.txArray[i].quantity -= runningQuantity;
         this.totalQuantity -= runningQuantity;
+        this.totalQuantity = Number(this.totalQuantity.toPrecision(12));
         var costBasis = runningQuantity * this.txArray[i].basisSpot;
-        costBasis = costBasis.toPrecision(12);
         var saleProceeds = runningQuantity * tx.basisSpot;
-        saleProceeds = saleProceeds.toPrecision(12);
-        if (!skipProceeds) {
-          var myProceeds = new Proceeds(
-            this.txArray[i].date,
-            tx.date,
-            tx.asset,
-            runningQuantity,
-            costBasis,
-            saleProceeds
-          );
-          proceedsArray.push(myProceeds);
-        }
+        var myProceeds = new Proceeds(
+          this.txArray[i].date,
+          tx.date,
+          tx.asset,
+          runningQuantity,
+          costBasis,
+          saleProceeds
+        );
+        proceedsArray.push(myProceeds);
         runningQuantity = 0;
         return;
       }
@@ -660,23 +653,19 @@ class Bank {
       if (runningQuantity > this.txArray[i].quantity) {
         var numberSold = this.txArray[i].quantity;
         this.totalQuantity -= numberSold;
+        this.totalQuantity = Number(this.totalQuantity.toPrecision(12));
         this.txArray[i].quantity = 0;
         var costBasis = numberSold * this.txArray[i].basisSpot;
-        costBasis = costBasis.toPrecision(12);
         var saleProceeds = numberSold * tx.basisSpot;
-        saleProceeds = saleProceeds.toPrecision(12);
-        if (!skipProceeds) {
-          var myProceeds = new Proceeds(this.txArray[i].date, tx.date, tx.asset, numberSold, costBasis, saleProceeds);
-          proceedsArray.push(myProceeds);
-        }
+        var myProceeds = new Proceeds(this.txArray[i].date, tx.date, tx.asset, numberSold, costBasis, saleProceeds);
+        proceedsArray.push(myProceeds);
         var num = Number(runningQuantity) - Number(numberSold);
-        num = num.toPrecision(12);
-        runningQuantity = num;
-        //runningQuantity -= numberSold;
+        runningQuantity = Number(num.toPrecision(12));
       }
     }
     alert('ERROR: Not enough ' + tx.asset + ' banked to cover sale on ' + tx.date);
     console.log('error, not enough ' + tx.asset + ' banked to cover this sale!!');
+    window.location.reload();
   }
 }
 
