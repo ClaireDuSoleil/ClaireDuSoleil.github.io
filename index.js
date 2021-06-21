@@ -633,6 +633,7 @@ class Bank {
       if (this.txArray[i].quantity == 0) continue;
       if (runningQuantity <= this.txArray[i].quantity) {
         this.txArray[i].quantity -= runningQuantity;
+        this.txArray[i].quantity = Number(this.txArray[i].quantity.toPrecision(12));
         this.totalQuantity -= runningQuantity;
         this.totalQuantity = Number(this.totalQuantity.toPrecision(12));
         var costBasis = runningQuantity * this.txArray[i].basisSpot;
