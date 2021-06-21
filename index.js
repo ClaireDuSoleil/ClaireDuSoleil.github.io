@@ -233,7 +233,6 @@ function createSaveCSVButton() {
   save_csv_button.style.marginBottom = '20px';
   save_csv_button.addEventListener('click', function () {
     saveTextAsFile(createOutputCSV(), inputFileName + '-Proceeds.csv');
-    alert('File saved to Download Folder');
   });
 }
 
@@ -359,7 +358,6 @@ function createSaveTXFButton() {
   div1.insertBefore(save_txf_button, e);
   save_txf_button.addEventListener('click', function () {
     saveTextAsFile(createOutputTXF(), inputFileName + '-TurboTax.txf');
-    alert('File saved to Download Folder');
   });
 }
 
