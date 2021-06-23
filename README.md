@@ -1,6 +1,6 @@
 # ClaireDuSoleil.github.io
 
-Convert Coinbase CSV to TurboTax Format (.txf) or a Gain-Loss CSV.
+Convert Coinbase CSV to TurboTax Format (.txf) or a Proceeds CSV.
 
 Now includes showing proceeds in an Excel-like spreadsheet that can be edited prior to exporting.
 
