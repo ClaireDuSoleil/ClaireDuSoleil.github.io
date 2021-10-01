@@ -514,7 +514,7 @@ function processData(allText) {
 }
 
 function analyzeTx(item, index, arr) {
-  if (item.action == 'Buy' || item.action == 'Receive') processAddBank(item);
+  if (item.action == 'Buy' || item.action == 'Receive' || item.action == "Rewards Income" || item.action == "Coinbase Earn") processAddBank(item);
   if (item.action == 'Sell' || item.action == 'Send') processSubtractBank(item);
   if (item.action == 'Convert') processConversion(item);
 }
