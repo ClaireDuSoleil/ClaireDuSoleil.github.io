@@ -294,7 +294,10 @@ function combineProceeds() {
   for (var j = 1; j < proceedsArray.length; j++) {
     let proceeds = proceedsArray[j - 1];
     let nextProceeds = proceedsArray[j];
-    if (proceeds.dateDisposed == nextProceeds.dateDisposed && proceeds.assetName == nextProceeds.assetName) {
+    if (
+      proceeds.dateDisposed == nextProceeds.dateDisposed &&
+      proceeds.assetName == nextProceeds.assetName
+    ) {
       proceeds.usedInCombo = true;
       nextProceeds.usedInCombo = true;
       var found = false;
@@ -327,7 +330,8 @@ function combineProceeds() {
       }
     } else {
       if (proceeds.usedInCombo == false) combinedProceedsArray.push(proceeds);
-      if (nextProceeds.usedInCombo == false && j == proceedsArray.length - 1) combinedProceedsArray.push(nextProceeds);
+      if (nextProceeds.usedInCombo == false && j == proceedsArray.length - 1)
+        combinedProceedsArray.push(nextProceeds);
     }
   }
 }
@@ -335,7 +339,8 @@ function combineProceeds() {
 function createOutputCSV() {
   var hotData = hot.getData();
   var output = '';
-  output = 'Date Acquired, Date Disposed, Asset, Quantity, Basis, Basis-Spot, Proceeds, Gain/Loss\r\n';
+  output =
+    'Date Acquired, Date Disposed, Asset, Quantity, Basis, Basis-Spot, Proceeds, Gain/Loss\r\n';
   for (var i = 0; i < hotData.length; i++) {
     output += hotData[i][1] + ',';
     output += hotData[i][2] + ',';
@@ -457,6 +462,25 @@ function processData(allText) {
   }
 
   var headers = allTextLines[startRow].split(',');
+  console.log('Check headers: ' + headers);
+  var headerAlert = false;
+  if (headers[0] != 'Timestamp') headerAlert = true;
+  if (headers[1] != 'Transaction Type') headerAlert = true;
+  if (headers[2] != 'Asset') headerAlert = true;
+  if (headers[3] != 'Quantity Transacted') headerAlert = true;
+  if (headers[4] != 'Spot Price Currency') headerAlert = true;
+  if (headers[5] != 'Spot Price at Transaction') headerAlert = true;
+  if (headers[6] != 'Subtotal') headerAlert = true;
+  if (headers[7] != 'Total (inclusive of fees)') headerAlert = true;
+  if (headers[8] != 'Fees') headerAlert = true;
+  if (headers[9] != 'Notes') headerAlert = true;
+
+  console.log('header alert is:' + headerAlert);
+  if (headerAlert) {
+    alert(
+      'Expected column names not found.  Coinbase may have changed their CSV format so the calculations may be incorrect.\n\nThis is what is expected: Timestamp,Transaction Type,Asset,Quantity Transacted,Spot Price Currency,Spot Price at Transaction,Subtotal,Total (inclusive of fees),Fees,Notes\n\nIf you suspect that this webpage code needs to be updated, please file an issue at https://github.com/ClaireDuSoleil/ClaireDuSoleil.github.io'
+    );
+  }
   for (var i = startRow + 1; i < allTextLines.length; i++) {
     var tmp = allTextLines[i].toString();
     //remove those pesky double double quotes first before splitting by comma
@@ -484,10 +508,10 @@ function processData(allText) {
         myobj['Transaction Type'],
         myobj.Asset,
         myobj['Quantity Transacted'],
-        myobj['USD Spot Price at Transaction'],
-        myobj['USD Subtotal'],
-        myobj['USD Total (inclusive of fees)'],
-        myobj['USD Fees'],
+        myobj['Spot Price at Transaction'],
+        myobj['Subtotal'],
+        myobj['Total (inclusive of fees)'],
+        myobj['Fees'],
         myobj.Notes
       );
       tranArray.push(myTrans);
@@ -498,10 +522,10 @@ function processData(allText) {
         myobj['Transaction Type'],
         myobj.Asset,
         myobj['Quantity Transacted'],
-        myobj['USD Spot Price at Transaction'],
-        myobj['USD Subtotal'],
-        myobj['USD Total (inclusive of fees)'],
-        myobj['USD Fees'],
+        myobj['Spot Price at Transaction'],
+        myobj['Subtotal'],
+        myobj['Total (inclusive of fees)'],
+        myobj['Fees'],
         myobj.Notes
       );
       origTranArray.push(myOrigTrans);
@@ -514,7 +538,13 @@ function processData(allText) {
 }
 
 function analyzeTx(item, index, arr) {
-  if (item.action == 'Buy' || item.action == 'Receive' || item.action == "Rewards Income" || item.action == "Coinbase Earn") processAddBank(item);
+  if (
+    item.action == 'Buy' ||
+    item.action == 'Receive' ||
+    item.action == 'Rewards Income' ||
+    item.action == 'Coinbase Earn'
+  )
+    processAddBank(item);
   if (item.action == 'Sell' || item.action == 'Send') processSubtractBank(item);
   if (item.action == 'Convert') processConversion(item);
 }
@@ -577,7 +607,18 @@ function processConversion(item) {
 }
 
 class Transaction {
-  constructor(_date, _unixDate, _action, _asset, _quantity, _spot, _subtotal, _total, _fees, _note) {
+  constructor(
+    _date,
+    _unixDate,
+    _action,
+    _asset,
+    _quantity,
+    _spot,
+    _subtotal,
+    _total,
+    _fees,
+    _note
+  ) {
     this.date = _date;
     this.unixDate = _unixDate;
     this.action = _action;
@@ -656,7 +697,14 @@ class Bank {
         this.txArray[i].quantity = 0;
         var costBasis = numberSold * this.txArray[i].basisSpot;
         var saleProceeds = numberSold * tx.basisSpot;
-        var myProceeds = new Proceeds(this.txArray[i].date, tx.date, tx.asset, numberSold, costBasis, saleProceeds);
+        var myProceeds = new Proceeds(
+          this.txArray[i].date,
+          tx.date,
+          tx.asset,
+          numberSold,
+          costBasis,
+          saleProceeds
+        );
         proceedsArray.push(myProceeds);
         var num = Number(runningQuantity) - Number(numberSold);
         runningQuantity = Number(num.toPrecision(12));
