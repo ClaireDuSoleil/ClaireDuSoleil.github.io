@@ -380,19 +380,24 @@ function createOutputTXF() {
     '/' +
     date.getFullYear() +
     '\r\n';
-  // N321 is short-term sale
-  // N323 is long-term
+
+  // https://taxdataexchange.org/docs/txf/v042/form-1099-b.html  
+  // N321 is short-term sale with a 1099-B
+  // N323 is long-term sale with a 1099-B
+  // N712 is short-term sale with NO 1099-B
+  // N714 is long-term sale with NO 1099-B
+  // SO ...Coinbase does not issue 1099-B forms so use 712 and 714 instead
   for (var i = 0; i < hotData.length; i++) {
     var dateAcquired = hotData[i][1];
     var dateDisposed = hotData[i][2];
     var d1 = Date.parse(dateAcquired);
     var d2 = Date.parse(dateDisposed);
-    var saleCode = 'N321';
+    var saleCode = 'N712';
     const date1 = new Date(d1);
     const date2 = new Date(d2);
     const diffTime = Math.abs(date2 - date1);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays > 365) saleCode = 'N323'; //todo fix for a leap year
+    if (diffDays > 365) saleCode = 'N714'; //todo fix for a leap year
 
     var txfDateAcq = ('0' + (date1.getMonth() + 1)).slice(-2);
     txfDateAcq += '/' + ('0' + date1.getUTCDate()).slice(-2);
