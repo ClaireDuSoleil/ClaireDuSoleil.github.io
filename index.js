@@ -381,7 +381,7 @@ function createOutputTXF() {
     date.getFullYear() +
     '\r\n';
 
-  // https://taxdataexchange.org/docs/txf/v042/form-1099-b.html  
+  // https://taxdataexchange.org/docs/txf/v042/form-1099-b.html
   // N321 is short-term sale with a 1099-B
   // N323 is long-term sale with a 1099-B
   // N712 is short-term sale with NO 1099-B
@@ -671,11 +671,28 @@ class Bank {
   }
 
   subtractTx(tx) {
+    console.log(
+      'processing subtract transaction of ' + tx.quantity + ' ' + tx.asset + ' on ' + tx.date
+    );
     var runningQuantity = tx.quantity;
     //using FIFO method to compute proceeds
     for (var i = 0; i < this.txArray.length; i++) {
       if (this.txArray[i].quantity == 0) continue;
       if (runningQuantity <= this.txArray[i].quantity) {
+        var partAll = 'all of '; //for logging
+        if (runningQuantity < this.txArray[i].quantity) {
+          partAll = 'part of ';
+        }
+
+        console.log(
+          '   using ' +
+            partAll +
+            this.txArray[i].quantity +
+            ' ' +
+            this.txArray[i].asset +
+            ' acquired on ' +
+            this.txArray[i].date
+        );
         this.txArray[i].quantity -= runningQuantity;
         this.txArray[i].quantity = Number(this.txArray[i].quantity.toPrecision(12));
         this.totalQuantity -= runningQuantity;
@@ -696,6 +713,14 @@ class Bank {
       }
 
       if (runningQuantity > this.txArray[i].quantity) {
+        console.log(
+          '   using all of ' +
+            this.txArray[i].quantity +
+            ' ' +
+            this.txArray[i].asset +
+            ' acquired on ' +
+            this.txArray[i].date
+        );
         var numberSold = this.txArray[i].quantity;
         this.totalQuantity -= numberSold;
         this.totalQuantity = Number(this.totalQuantity.toPrecision(12));
