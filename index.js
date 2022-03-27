@@ -748,17 +748,17 @@ class Bank {
         tx.asset +
         ' banked to cover sale on ' +
         tx.date +
-        '  Balance available for ' +
+        '  Still need  ' +
         tx.asset +
-        ' is ' +
+        ' balance of  ' +
         lowBalance
     );
     console.log(
       'error, not enough ' +
         tx.asset +
-        ' banked to cover this sale!! Only ' +
+        ' banked to cover this sale!! Still missing ' +
         lowBalance +
-        'is left.'
+        '.'
     );
     window.location.reload();
   }
