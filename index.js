@@ -594,7 +594,9 @@ function processConversion(item) {
   processSubtractBank(sellTrans);
   //now we have to parse out the notes to figure out what we bought and how much
   var delimiter = ' ';
+  item.note = item.note.replace(/,/g, '');
   var elements = item.note.split(delimiter);
+  // console.log(`elements in note are:${elements}`);
 
   let addTrans = new Transaction(
     item.date,
@@ -678,6 +680,22 @@ class Bank {
     //using FIFO method to compute proceeds
     for (var i = 0; i < this.txArray.length; i++) {
       if (this.txArray[i].quantity == 0) continue;
+
+      var diff = Math.abs(runningQuantity - this.txArray[i].quantity);
+      if (diff != 0 && diff * this.txArray[i].basisSpot < 0.01) {
+        console.log(
+          'rounding adjustment for ' +
+            tx.asset +
+            ' diff=' +
+            parseFloat(diff).toFixed(12) +
+            ' setting runningQuantity to ' +
+            this.txArray[i].quantity +
+            ' from ' +
+            runningQuantity
+        );
+        runningQuantity = this.txArray[i].quantity;
+      }
+
       if (runningQuantity <= this.txArray[i].quantity) {
         var partAll = 'all of '; //for logging
         if (runningQuantity < this.txArray[i].quantity) {
