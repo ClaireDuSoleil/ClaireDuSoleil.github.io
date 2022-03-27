@@ -740,8 +740,26 @@ class Bank {
         runningQuantity = Number(num.toPrecision(12));
       }
     }
-    alert('ERROR: Not enough ' + tx.asset + ' banked to cover sale on ' + tx.date);
-    console.log('error, not enough ' + tx.asset + ' banked to cover this sale!!');
+
+    var lowBalance = parseFloat(runningQuantity).toFixed(12);
+
+    alert(
+      'ERROR: Not enough ' +
+        tx.asset +
+        ' banked to cover sale on ' +
+        tx.date +
+        '  Balance available for ' +
+        tx.asset +
+        ' is ' +
+        lowBalance
+    );
+    console.log(
+      'error, not enough ' +
+        tx.asset +
+        ' banked to cover this sale!! Only ' +
+        lowBalance +
+        'is left.'
+    );
     window.location.reload();
   }
 }
