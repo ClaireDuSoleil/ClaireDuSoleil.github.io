@@ -476,14 +476,14 @@ function processData(allText) {
   if (headers[4] != 'Spot Price Currency') headerAlert = true;
   if (headers[5] != 'Spot Price at Transaction') headerAlert = true;
   if (headers[6] != 'Subtotal') headerAlert = true;
-  if (headers[7] != 'Total (inclusive of fees)') headerAlert = true;
-  if (headers[8] != 'Fees') headerAlert = true;
+  if (headers[7] != 'Total (inclusive of fees and/or spread)') headerAlert = true;
+  if (headers[8] != 'Fees and/or Spread') headerAlert = true;
   if (headers[9] != 'Notes') headerAlert = true;
 
   console.log('header alert is:' + headerAlert);
   if (headerAlert) {
     alert(
-      'Expected column names not found.  Coinbase may have changed their CSV format so the calculations may be incorrect.\n\nThis is what is expected: Timestamp,Transaction Type,Asset,Quantity Transacted,Spot Price Currency,Spot Price at Transaction,Subtotal,Total (inclusive of fees),Fees,Notes\n\nIf you suspect that this webpage code needs to be updated, please file an issue at https://github.com/ClaireDuSoleil/ClaireDuSoleil.github.io'
+      'Expected column names not found.  Coinbase may have changed their CSV format so the calculations may be incorrect.\n\nThis is what is expected: Timestamp,Transaction Type,Asset,Quantity Transacted,Spot Price Currency,Spot Price at Transaction,Subtotal,Total (inclusive of fees and/or spread),Fees and/or Spread,Notes\n\nIf you suspect that this webpage code needs to be updated, please file an issue at https://github.com/ClaireDuSoleil/ClaireDuSoleil.github.io'
     );
   }
   for (var i = startRow + 1; i < allTextLines.length; i++) {
@@ -515,8 +515,8 @@ function processData(allText) {
         myobj['Quantity Transacted'],
         myobj['Spot Price at Transaction'],
         myobj['Subtotal'],
-        myobj['Total (inclusive of fees)'],
-        myobj['Fees'],
+        myobj['Total (inclusive of fees and/or spread)'],
+        myobj['Fees and/or Spread'],
         myobj.Notes
       );
       tranArray.push(myTrans);
@@ -529,8 +529,8 @@ function processData(allText) {
         myobj['Quantity Transacted'],
         myobj['Spot Price at Transaction'],
         myobj['Subtotal'],
-        myobj['Total (inclusive of fees)'],
-        myobj['Fees'],
+        myobj['Total (inclusive of fees and/or spread)'],
+        myobj['Fees and/or Spread'],
         myobj.Notes
       );
       origTranArray.push(myOrigTrans);
