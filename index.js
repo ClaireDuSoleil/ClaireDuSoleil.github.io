@@ -682,7 +682,7 @@ class Bank {
       if (this.txArray[i].quantity == 0) continue;
 
       var diff = Math.abs(runningQuantity - this.txArray[i].quantity);
-      if (diff != 0 && diff * this.txArray[i].basisSpot < 0.01) {
+      if (diff != 0 && diff * this.txArray[i].basisSpot < 0.04) {
         console.log(
           'rounding adjustment for ' +
             tx.asset +
